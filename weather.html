@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Vikas Weather App</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:linear-gradient(135deg,#4facfe,#00f2fe);
+    padding:20px;
+}
+
+.weather-box{
+    width:100%;
+    max-width:420px;
+    background:rgba(255,255,255,0.18);
+    backdrop-filter:blur(15px);
+    border:1px solid rgba(255,255,255,0.3);
+    border-radius:25px;
+    padding:30px;
+    text-align:center;
+    color:white;
+    box-shadow:0 20px 50px rgba(0,0,0,0.2);
+}
+
+h1{
+    margin-bottom:25px;
+}
+
+.search{
+    display:flex;
+    gap:10px;
+    margin-bottom:25px;
+}
+
+input{
+    flex:1;
+    padding:13px;
+    border:none;
+    border-radius:10px;
+    outline:none;
+    font-size:16px;
+}
+
+button{
+    padding:13px 18px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.search button{
+    background:#111;
+    color:white;
+}
+
+.weather-icon{
+    font-size:70px;
+    margin:15px 0;
+}
+
+.temperature{
+    font-size:55px;
+    font-weight:bold;
+}
+
+.condition{
+    font-size:22px;
+    margin:10px 0 25px;
+}
+
+.details{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:15px;
+}
+
+.detail{
+    background:rgba(255,255,255,0.15);
+    padding:18px;
+    border-radius:15px;
+}
+
+.detail span{
+    display:block;
+    font-size:13px;
+    margin-bottom:8px;
+    opacity:.8;
+}
+
+.error{
+    margin-top:15px;
+    color:#ffe0e0;
+    font-weight:bold;
+}
+
+.back{
+    margin-top:25px;
+    background:white;
+    color:#111;
+}
+
+footer{
+    margin-top:20px;
+    font-size:13px;
+    opacity:.8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="weather-box">
+
+    <h1>🌤️ Weather App</h1>
+
+    <div class="search">
+        <input type="text" id="cityInput" placeholder="Enter city name">
+        <button onclick="getWeather()">Search</button>
+    </div>
+
+    <div id="weather">
+
+        <div class="weather-icon">🌤️</div>
+
+        <h2 id="city">Kota</h2>
+
+        <div class="temperature" id="temperature">--°C</div>
+
+        <div class="condition" id="condition">
+            Search for a city
+        </div>
+
+        <div class="details">
+
+            <div class="detail">
+                <span>💧 Humidity</span>
+                <strong id="humidity">--%</strong>
+            </div>
+
+            <div class="detail">
+                <span>💨 Wind</span>
+                <strong id="wind">-- km/h</strong>
+            </div>
+
+        </div>
+
+    </div>
+
+    <button class="back" onclick="goBack()">
+        ← Back to Portfolio
+    </button>
+
+    <footer>
+        Built by Vikas Kumar 💻
+    </footer>
+
+</div>
+
+<script>
+
+async function getWeather(){
+
+    const city =
+        document.getElementById("cityInput").value.trim();
+
+    if(city === ""){
+        document.getElementById("condition").innerText =
+            "Please enter a city name.";
+        return;
+    }
+
+    try{
+
+        const geoResponse = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
+        );
+
+        const geoData = await geoResponse.json();
+
+        if(!geoData.results){
+            document.getElementById("condition").innerText =
+                "City not found.";
+            return;
+        }
+
+        const location = geoData.results[0];
+
+        const latitude = location.latitude;
+        const longitude = location.longitude;
+
+        const weatherResponse = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`
+        );
+
+        const weatherData = await weatherResponse.json();
+
+        const current = weatherData.current;
+
+        document.getElementById("city").innerText =
+            location.name;
+
+        document.getElementById("temperature").innerText =
+            Math.round(current.temperature_2m) + "°C";
+
+        document.getElementById("humidity").innerText =
+            current.relative_humidity_2m + "%";
+
+        document.getElementById("wind").innerText =
+            current.wind_speed_10m + " km/h";
+
+        document.getElementById("condition").innerText =
+            getWeatherCondition(current.weather_code);
+
+        document.querySelector(".weather-icon").innerText =
+            getWeatherIcon(current.weather_code);
+
+    }catch(error){
+
+        document.getElementById("condition").innerText =
+            "Something went wrong. Try again.";
+
+    }
+}
+
+
+function getWeatherCondition(code){
+
+    if(code === 0) return "Clear Sky ☀️";
+
+    if(code >= 1 && code <= 3)
+        return "Partly Cloudy ⛅";
+
+    if(code >= 45 && code <= 48)
+        return "Fog 🌫️";
+
+    if(code >= 51 && code <= 67)
+        return "Rain 🌧️";
+
+    if(code >= 71 && code <= 77)
+        return "Snow ❄️";
+
+    if(code >= 80 && code <= 82)
+        return "Rain Showers 🌦️";
+
+    if(code >= 95)
+        return "Thunderstorm ⛈️";
+
+    return "Unknown";
+}
+
+
+function getWeatherIcon(code){
+
+    if(code === 0) return "☀️";
+
+    if(code >= 1 && code <= 3)
+        return "⛅";
+
+    if(code >= 45 && code <= 48)
+        return "🌫️";
+
+    if(code >= 51 && code <= 67)
+        return "🌧️";
+
+    if(code >= 71 && code <= 77)
+        return "❄️";
+
+    if(code >= 80 && code <= 82)
+        return "🌦️";
+
+    if(code >= 95)
+        return "⛈️";
+
+    return "🌤️";
+}
+
+
+function goBack(){
+
+    window.location.href = "https://vikas07ss.github.io/my-website/";
+
+}
+
+</script>
+
+</body>
+</html>
